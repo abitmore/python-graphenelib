@@ -38,13 +38,13 @@ def fetch_from_yunbi():
     sys.exit("\nExiting due to exchange importance\n")
    return
 
-  availableAssets = [ core_symbol ]
-  for coin in availableAssets :
-   if float(result[coin.lower()+"btc"]["ticker"]["last"]) < config.minValidAssetPrice:
-    print("\nUnreliable results from yunbi for %s"%(coin))
-    continue
-   price["BTC"][ coin ].append(float(result[coin.lower()+"btc"]["ticker"]["last"]))
-   volume["BTC"][ coin ].append(float(result[coin.lower()+"btc"]["ticker"]["vol"])*config.yunbi_trust_level)
+#  availableAssets = [ core_symbol ]
+#  for coin in availableAssets :
+#   if float(result[coin.lower()+"btc"]["ticker"]["last"]) < config.minValidAssetPrice:
+#    print("\nUnreliable results from yunbi for %s"%(coin))
+#    continue
+#   price["BTC"][ coin ].append(float(result[coin.lower()+"btc"]["ticker"]["last"]))
+#   volume["BTC"][ coin ].append(float(result[coin.lower()+"btc"]["ticker"]["vol"])*config.yunbi_trust_level)
 
   availableAssets = [ core_symbol, "BTC" ]
   for coin in availableAssets :
@@ -52,28 +52,30 @@ def fetch_from_yunbi():
     print("Unreliable results from yunbi for %s"%(coin))
     continue
    price["CNY"][ coin ].append(float(result[coin.lower()+"cny"]["ticker"]["last"]))
+   price[ coin ]["CNY"].append(1/float(result[coin.lower()+"cny"]["ticker"]["last"]))
    volume["CNY"][ coin ].append(float(result[coin.lower()+"cny"]["ticker"]["vol"])*config.yunbi_trust_level)
 
 def fetch_from_btc38():
   global price, volume
   url="http://api.btc38.com/v1/ticker.php"
-  availableAssets = [ core_symbol ]
-  try :
-   params = { 'c': 'all', 'mk_type': 'btc' }
-   response = requests.get(url=url, params=params, headers=_request_headers, timeout=3 )
-   result = response.json()
-  except Exception as e:
-   print("\nError fetching results from btc38! ({0})\n".format(str(e)))
-   if config.btc38_trust_level > 0.8:
-    sys.exit("\nExiting due to exchange importance!\n")
-   return
-
-  for coin in availableAssets :
-   if "ticker" in result[coin.lower()] and result[coin.lower()]["ticker"] and float(result[coin.lower()]["ticker"]["last"])>config.minValidAssetPrice:
-    price["BTC"][ coin ].append(float(result[coin.lower()]["ticker"]["last"]))
-    volume["BTC"][ coin ].append(float(result[coin.lower()]["ticker"]["vol"]*result[coin.lower()]["ticker"]["last"])*config.btc38_trust_level)
+#  availableAssets = [ core_symbol ]
+#  try :
+#   params = { 'c': 'all', 'mk_type': 'btc' }
+#   response = requests.get(url=url, params=params, headers=_request_headers, timeout=3 )
+#   result = response.json()
+#  except Exception as e:
+#   print("\nError fetching results from btc38! ({0})\n".format(str(e)))
+#   if config.btc38_trust_level > 0.8:
+#    sys.exit("\nExiting due to exchange importance!\n")
+#   return
+#
+#  for coin in availableAssets :
+#   if "ticker" in result[coin.lower()] and result[coin.lower()]["ticker"] and float(result[coin.lower()]["ticker"]["last"])>config.minValidAssetPrice:
+#    price["BTC"][ coin ].append(float(result[coin.lower()]["ticker"]["last"]))
+#    volume["BTC"][ coin ].append(float(result[coin.lower()]["ticker"]["vol"]*result[coin.lower()]["ticker"]["last"])*config.btc38_trust_level)
 
   availableAssets = [ core_symbol, "BTC" ]
+  #availableAssets = [ "BTC" ]
   try :
    params = { 'c': 'all', 'mk_type': 'cny' }
    response = requests.get(url=url, params=params, headers=_request_headers, timeout=3 )
@@ -88,6 +90,8 @@ def fetch_from_btc38():
    if "ticker" in result[coin.lower()] and result[coin.lower()]["ticker"]  and float(result[coin.lower()]["ticker"]["last"])>config.minValidAssetPrice:
     price["CNY"][ coin ].append(float(result[coin.lower()]["ticker"]["last"]))
     volume["CNY"][ coin ].append(float(result[coin.lower()]["ticker"]["vol"])*float(result[coin.lower()]["ticker"]["last"])*config.btc38_trust_level)
+    price[ coin ]["CNY"].append(1/float(result[coin.lower()]["ticker"]["last"]))
+    volume[ coin ]["CNY"].append(float(result[coin.lower()]["ticker"]["vol"])*float(result[coin.lower()]["ticker"]["last"])*config.btc38_trust_level)
 
 def fetch_from_bter():
   global price, volume
@@ -129,22 +133,29 @@ def fetch_from_bter():
 def fetch_from_poloniex():
   global price, volume
   try:
+   print("\n")
+   print(config.poloniex_trust_level)
    url="https://poloniex.com/public?command=returnTicker"
    response = requests.get(url=url, headers=_request_headers, timeout=3 )
    result = response.json()
+   #print(result)
    availableAssets = [ core_symbol ]
+   print("\n")
+   print(availableAssets)
   except Exception as e:
    print("\nError fetching results from poloniex! ({0})\n".format(str(e)))
    if config.poloniex_trust_level > 0.8:
     sys.exit("\nExiting due to exchange importance!\n")
    return
   for coin in availableAssets :
+   print(float(result["BTC_"+coin]["last"]))
    if float(result["BTC_"+coin]["last"]) > config.minValidAssetPrice:
     price["BTC"][ coin ].append(float(result["BTC_"+coin]["last"]))
-    volume["BTC"][ coin ].append(float(result["BTC_"+coin]["baseVolume"])*config.poloniex_trust_level)
+    volume["BTC"][ coin ].append(float(result["BTC_"+coin]["quoteVolume"])*config.poloniex_trust_level)
 
 def fetch_from_bittrex():
-  availableAssets = [ "BTSX" ]
+  #availableAssets = [ "BTSX" ]
+  availableAssets = [ core_symbol ]
   try:
    url="https://bittrex.com/api/v1.1/public/getmarketsummaries"
    response = requests.get(url=url, headers=_request_headers, timeout=3 )
@@ -154,6 +165,7 @@ def fetch_from_bittrex():
    if config.bittrex_trust_level > 0.8:
     sys.exit("\nExiting due to exchange importance!\n")
    return
+  #print(result)
   for coin in result :
    if( coin[ "MarketName" ] in ["BTC-"+a for a in availableAssets] ) :
     mObj    = re.match( 'BTC-(.*)', coin[ "MarketName" ] )
@@ -175,6 +187,7 @@ def fetch_from_yahoo():
     params = {'s':yahooAssets,'f':'l1','e':'.csv'}
     response = requests.get(url=url, headers=_request_headers, timeout=3 ,params=params)
     yahooprices =  response.text.replace('\r','').split( '\n' )
+    #print(base, yahooprices)
     for i,a in enumerate(_yahoo_quote) :
      if float(yahooprices[i]) > 0 :
       price[base][ bts_yahoo_map(a) ].append(float(yahooprices[i]))
@@ -184,7 +197,9 @@ def fetch_from_yahoo():
    url="http://download.finance.yahoo.com/d/quotes.csv"
    params = {'s':yahooAssets,'f':'l1','e':'.csv'}
    response = requests.get(url=url, headers=_request_headers, timeout=3 ,params=params)
+   #print(response)
    yahooprices =  response.text.replace('\r','').split( '\n' )
+   #print(yahooprices)
    for i,a in enumerate(_yahoo_indices) :
     if float(yahooprices[i]) > 0 :
      #price[ list(_yahoo_indices.values())[i] ][ bts_yahoo_map(a) ].append(float(yahooprices[i]))
@@ -205,7 +220,7 @@ def fetch_from_wallet(rpc):
   #result = rpc.get_bitasset_data(asset)
   price_median_blockchain[asset] = 0.0
   try:
-   price_median_blockchain[asset] = float(assets[asset]["options"]["core_exchange_rate"]["quote"]["amount"]/float(assets[asset]["options"]["core_exchange_rate"]["base"]["amount"])*(10**(5-assets[asset]["precision"]))) ### FIXME (is this really 'base')
+   price_median_blockchain[asset] = float(assets[asset]["options"]["core_exchange_rate"]["base"]["amount"]/float(assets[asset]["options"]["core_exchange_rate"]["quote"]["amount"])*(10**(5-assets[asset]["precision"]))) ### FIXME (is this really 'base')
   except Exception as e:
    print("\nError calculating price_median_blockchain! ({0})\n".format(str(e)))
 
@@ -310,10 +325,10 @@ def print_stats() :
     else :
      change_blockchain      = ((weighted_external_price - price_from_blockchain)/price_from_blockchain)*100
     t.add_row([asset,
-               1/weighted_external_price,
-               1/mean_exchanges,
-               1/median_exchanges,
-               1/price_from_blockchain,
+               weighted_external_price,
+               mean_exchanges,
+               median_exchanges,
+               price_from_blockchain,
                change_blockchain,
                age ])
  print("\n"+t.get_string())
@@ -397,7 +412,7 @@ if __name__ == "__main__":
  mythreads["yahoo"]    = threading.Thread(target = fetch_from_yahoo)
  mythreads["yunbi"]    = threading.Thread(target = fetch_from_yunbi)
  mythreads["btc38"]    = threading.Thread(target = fetch_from_btc38)
- mythreads["bter"]     = threading.Thread(target = fetch_from_bter)
+# mythreads["bter"]     = threading.Thread(target = fetch_from_bter)
  mythreads["poloniex"] = threading.Thread(target = fetch_from_poloniex)
  mythreads["bittrex"]  = threading.Thread(target = fetch_from_bittrex)
  
@@ -421,6 +436,7 @@ if __name__ == "__main__":
             print(asset+" precision %s"%assets[asset]["precision"])
             core_price = int(price_in_bts_weighted[asset]*(1e4) * (10**assets[asset]["precision"]))
             price_feed = {
+                      "maximum_short_squeeze_ratio": 1100, 
                       "settlement_price": {
                         "quote": {
                           "asset_id": "1.3.0",
@@ -433,11 +449,11 @@ if __name__ == "__main__":
                         }
                       }, 
                       "core_exchange_rate": {
-                        "quote": {
+                        "base": {
                           "asset_id": assets[asset]["id"], 
                           "amount": core_price
                         }, 
-                        "base": {
+                        "quote": {
                           "asset_id": "1.3.0",
                           "amount": int(1e9)
                         }
