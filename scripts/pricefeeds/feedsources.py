@@ -260,16 +260,27 @@ class Yahoo(FeedSource) :
         feed = {}
         feed[config.core_symbol] = {}
         try :
+            non_usd_quotes = list(self.quotes)
+            non_usd_quotes.remove('XAU')
+            non_usd_quotes.remove('XAG')
             # Currencies and commodities
             for base in self.bases :
                 feed[base] = {}
-                yahooAssets = ",".join([a + base + "=X" for a in self.quotes])
+                my_quotes = self.quotes
+                if base != "USD" :
+                    my_quotes = non_usd_quotes
+                #print( base );
+                #print( my_quotes );
+                yahooAssets = ",".join([a + base + "=X" for a in my_quotes])
+                if base == "USD" :
+                    yahooAssets = ",".join(["GC=F" if a=="XAU" else ("SI=F" if a=="XAG" else a + base + "=X") for a in my_quotes])
+                #print( yahooAssets );
                 url = "http://download.finance.yahoo.com/d/quotes.csv"
                 params = {'s' : yahooAssets, 'f' : 'l1', 'e' : '.csv'}
                 response = requests.get(url=url, headers=_request_headers, timeout=self.timeout, params=params)
                 yahooprices = response.text.replace('\r', '').split('\n')
-                for i, quote in enumerate(self.quotes) :
-                    if float(yahooprices[i]) > 0 :
+                for i, quote in enumerate(my_quotes) :
+                    if yahooprices[i] != "N/A" and float(yahooprices[i]) > 0 :
                         if hasattr(self, "quoteNames") and quote in self.quoteNames:
                             quote = self.quoteNames[quote]
                         feed[base][quote] = {"price"  : (float(yahooprices[i])),
